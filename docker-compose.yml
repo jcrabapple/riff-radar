@@ -1,0 +1,16 @@
+# Optional convenience file. Works with docker-compose or podman-compose.
+# You can also use plain `podman run` / `docker run` — see README.
+services:
+  riff-radar:
+    build: .
+    image: localhost/riff-radar:latest
+    volumes:
+      # On SELinux systems (Fedora etc.) keep the :Z flag.
+      - riff-radar-data:/data:Z
+    # Run one-off commands with:
+    #   podman-compose run --rm riff-radar scan
+    #   podman-compose run --rm riff-radar track "Sleep Token"
+    #   podman-compose run --rm riff-radar report
+
+volumes:
+  riff-radar-data:

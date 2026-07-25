@@ -74,6 +74,44 @@ The report header has filter buttons (All / Seed artists / Singles / Albums)
 that narrow the grid client-side, with a live "showing X of Y" count. Albums
 includes EPs.
 
+## Docker / Podman
+
+The image works with either runtime; swap `podman` for `docker` throughout.
+All state (config, SQLite DB, reports) lives in a single `/data` volume.
+
+```bash
+podman build -t riff-radar .
+
+# first run writes a default config into the volume
+podman run --rm -v riff-radar-data:/data:Z riff-radar track "Sleep Token"
+podman run --rm -v riff-radar-data:/data:Z riff-radar scan
+podman run --rm -v riff-radar-data:/data:Z riff-radar report
+```
+
+On SELinux systems (Fedora etc.) keep the `:Z` on the volume mount; elsewhere
+you can drop it. Every command works the same as a native install, e.g.
+`... riff-radar digest`, `... riff-radar scan --json`, `... riff-radar stats`.
+
+To grab the HTML report or edit the config from the host:
+
+```bash
+podman volume inspect riff-radar-data   # shows the host mountpoint
+```
+
+A `docker-compose.yml` is included as optional convenience for
+`docker compose` / `podman-compose` users:
+
+```bash
+podman-compose run --rm riff-radar scan
+```
+
+To scan on a schedule, point a host cron job or systemd timer at the
+container:
+
+```cron
+0 8 * * *  podman run --rm -v riff-radar-data:/data:Z riff-radar scan --fast
+```
+
 ## Automation
 
 Runs fine from cron or a systemd timer:
