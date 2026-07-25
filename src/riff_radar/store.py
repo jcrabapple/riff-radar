@@ -78,6 +78,15 @@ class Store:
         ).fetchall()
         return [StoredRelease(**dict(r)) for r in rows]
 
+    def releases_since(self, first_seen_after: str) -> list[StoredRelease]:
+        """Releases first seen at or after the given ISO timestamp."""
+        rows = self.conn.execute(
+            "SELECT * FROM releases WHERE first_seen >= ? "
+            "ORDER BY score DESC, release_date DESC",
+            (first_seen_after,),
+        ).fetchall()
+        return [StoredRelease(**dict(r)) for r in rows]
+
     def stats(self) -> dict:
         rel = self.conn.execute("SELECT COUNT(*) c FROM releases").fetchone()["c"]
         scans = self.conn.execute("SELECT COUNT(*) c FROM scans").fetchone()["c"]

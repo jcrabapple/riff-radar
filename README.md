@@ -25,6 +25,7 @@ Requires Python 3.10+. Runtime dependencies: none (stdlib only).
 riff-radar init      # write ~/.config/riff-radar/config.json with sane defaults
 riff-radar scan      # crawl the graph, find new releases
 riff-radar report    # render ~/.local/share/riff-radar/report.html
+riff-radar digest    # plain-text summary of the week's finds (pipe into email/chat)
 riff-radar stats     # quick counters
 riff-radar artists   # who's been showing up on the radar
 riff-radar track "Knocked Loose"    # add seed artists (no JSON editing)
@@ -75,6 +76,10 @@ Runs fine from cron or a systemd timer:
 ```cron
 0 8 * * *  riff-radar scan --fast && riff-radar report --out /var/www/radar/index.html
 ```
+
+`riff-radar digest` prints a plain-text summary of releases first seen in the
+last 7 days (override with `--days`), seed artists split out from discoveries.
+It is built for piping, e.g. `riff-radar digest | mail -s "new metal" you@example.com`.
 
 ## Development
 

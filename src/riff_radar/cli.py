@@ -9,6 +9,7 @@ from pathlib import Path
 from . import __version__
 from .config import Config, load, save, add_seeds, remove_seeds, DEFAULT_CONFIG_PATH
 from .deezer import DeezerClient
+from .digest import render_digest
 from .report import render
 from .scanner import scan
 from .store import Store
@@ -60,6 +61,14 @@ def cmd_report(args) -> int:
     path = render(store, out, limit=args.limit)
     store.close()
     print(f"report written to {path}")
+    return 0
+
+
+def cmd_digest(args) -> int:
+    cfg = load(Path(args.config) if args.config else None)
+    store = _store(cfg)
+    print(render_digest(store, cfg, days=args.days), end="")
+    store.close()
     return 0
 
 
@@ -137,6 +146,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("stats", help="show tracking stats")
     sp.set_defaults(func=cmd_stats)
+
+    sp = sub.add_parser("digest", help="plain-text summary of recent finds")
+    sp.add_argument("--days", type=int, default=7,
+                    help="how far back to look (default 7)")
+    sp.set_defaults(func=cmd_digest)
 
     sp = sub.add_parser("artists", help="list artists seen, most releases first")
     sp.set_defaults(func=cmd_artists)

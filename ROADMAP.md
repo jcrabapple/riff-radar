@@ -11,7 +11,7 @@ to the next. When everything is done, invent the next section and keep going.
 - [x] `track`/`untrack` CLI commands to manage seed artists without editing JSON
 - [x] per-artist release type filter (skip "compile" and karaoke/tribute noise)
 - [x] tribute/karaoke detection: filter artist names containing "tribute", "karaoke", "cover of", "made famous by"
-- [ ] `riff-radar digest` — plain-text summary of the week's finds, suitable for piping into email or a chat message
+- [x] `riff-radar digest` — plain-text summary of the week's finds, suitable for piping into email or a chat message
 - [ ] `--since` flag on scan to override the window ad hoc
 - [ ] JSON output mode for scan (`--json`) for scripting
 
