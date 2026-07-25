@@ -94,3 +94,19 @@ def test_untrack_cli_does_not_save_when_nothing_removed(tmp_path, capsys):
     before = json.loads(path.read_text())
     main(["--config", str(path), "untrack", "Nickelback"])
     assert json.loads(path.read_text()) == before
+
+
+def test_record_type_filters_round_trip(tmp_path):
+    path = tmp_path / "config.json"
+    cfg = make_cfg(skip_record_types=["compile", "ep"],
+                   artist_skip_record_types={"Sleep Token": ["single"]})
+    save(cfg, path)
+    loaded = load(path)
+    assert loaded.skip_record_types == ["compile", "ep"]
+    assert loaded.artist_skip_record_types == {"Sleep Token": ["single"]}
+
+
+def test_record_type_filter_defaults():
+    cfg = make_cfg()
+    assert cfg.skip_record_types == ["compile"]
+    assert cfg.artist_skip_record_types == {}

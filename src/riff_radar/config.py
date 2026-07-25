@@ -37,6 +37,12 @@ class Config:
     related_per_seed: int = 10
     # Cap on total artists scanned per run (keeps API calls bounded).
     max_artists_per_scan: int = 60
+    # Deezer record types to ignore globally ("compile" is mostly karaoke,
+    # tribute, and reissue noise).
+    skip_record_types: list[str] = field(default_factory=lambda: ["compile"])
+    # Extra record types to skip for specific artists, keyed by artist name
+    # (case-insensitive). Merged with skip_record_types during a scan.
+    artist_skip_record_types: dict[str, list[str]] = field(default_factory=dict)
     data_dir: str = "~/.local/share/riff-radar"
 
     @property

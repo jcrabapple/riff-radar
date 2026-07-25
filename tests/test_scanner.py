@@ -2,7 +2,7 @@ from datetime import date, timedelta
 
 from riff_radar.config import Config
 from riff_radar.deezer import Artist, Release
-from riff_radar.scanner import scan, build_artist_graph
+from riff_radar.scanner import scan, build_artist_graph, skipped_record_types
 from riff_radar.store import Store
 
 TODAY = date(2026, 7, 24)
@@ -98,4 +98,53 @@ def test_scan_records_history(tmp_path):
     stats = store.stats()
     assert stats["scans"] == 1
     assert stats["releases"] == 2
+    store.close()
+
+
+class CompileClient(FakeClient):
+    """Adds compilation noise to the seed artist's releases."""
+    def __init__(self):
+        super().__init__()
+        self.albums[1] = self.albums[1] + [
+            make_release(300, "Seed Band", 1, title="Karaoke Hits", rtype="compile"),
+        ]
+
+
+def test_compile_releases_skipped_by_default(tmp_path):
+    store = make_store(tmp_path)
+    result = scan(CompileClient(), store, make_cfg(), today=TODAY)
+    ids = {s.release.id for s in result.new_releases}
+    assert ids == {100, 200}  # 300 is a compile, filtered out
+    store.close()
+
+
+def test_custom_skip_record_types(tmp_path):
+    store = make_store(tmp_path)
+    cfg = make_cfg(skip_record_types=["single"])
+    result = scan(FakeClient(), store, cfg, today=TODAY)
+    assert result.new_releases == []  # fake releases are all singles
+    store.close()
+
+
+def test_per_artist_skip_only_affects_that_artist(tmp_path):
+    store = make_store(tmp_path)
+    cfg = make_cfg(skip_record_types=[],
+                   artist_skip_record_types={"related act": ["single"]})
+    result = scan(FakeClient(), store, cfg, today=TODAY)
+    ids = {s.release.id for s in result.new_releases}
+    assert ids == {100}  # related act's single skipped, seed's kept
+    store.close()
+
+
+def test_skipped_record_types_merges_global_and_per_artist():
+    cfg = make_cfg(skip_record_types=["Compile"],
+                   artist_skip_record_types={"Seed Band": ["EP"]})
+    assert skipped_record_types(cfg, "seed band") == {"compile", "ep"}
+    assert skipped_record_types(cfg, "Someone Else") == {"compile"}
+
+
+def test_skipped_releases_are_not_stored(tmp_path):
+    store = make_store(tmp_path)
+    scan(CompileClient(), store, make_cfg(), today=TODAY)
+    assert store.stats()["releases"] == 2
     store.close()

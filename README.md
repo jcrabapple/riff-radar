@@ -39,9 +39,16 @@ Config is plain JSON, editable by hand or via `track`/`untrack`:
   "keywords": ["metalcore", "post-hardcore", "djent"],
   "window_days": 14,
   "related_per_seed": 10,
-  "max_artists_per_scan": 60
+  "max_artists_per_scan": 60,
+  "skip_record_types": ["compile"],
+  "artist_skip_record_types": {"Some Artist": ["single"]}
 }
 ```
+
+`skip_record_types` drops Deezer record types globally ("compile" is where
+karaoke, tribute, and reissue noise lives, so it is skipped by default).
+`artist_skip_record_types` adds extra skips for one artist only, matched
+case-insensitively against the artist name.
 
 ## How scoring works
 

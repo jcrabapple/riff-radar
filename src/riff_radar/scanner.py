@@ -55,6 +55,15 @@ def build_artist_graph(client: DeezerClient, cfg: Config) -> tuple[dict[int, tup
     return graph, missing, errors
 
 
+def skipped_record_types(cfg: Config, artist_name: str) -> set[str]:
+    """Record types to ignore for an artist: global skips plus per-artist extras."""
+    skip = {t.lower() for t in cfg.skip_record_types}
+    for name, types in cfg.artist_skip_record_types.items():
+        if name.lower() == artist_name.lower():
+            skip |= {t.lower() for t in types}
+    return skip
+
+
 def scan(client: DeezerClient, store: Store, cfg: Config,
          today: date | None = None) -> ScanResult:
     today = today or date.today()
@@ -66,6 +75,7 @@ def scan(client: DeezerClient, store: Store, cfg: Config,
 
     seen = store.seen_ids()
     for artist_id, (artist, is_seed) in graph.items():
+        skip_types = skipped_record_types(cfg, artist.name)
         try:
             releases = client.artist_releases(artist_id, artist_name=artist.name)
         except DeezerError as e:
@@ -73,6 +83,8 @@ def scan(client: DeezerClient, store: Store, cfg: Config,
             continue
         for rel in releases:
             if rel.id in seen:
+                continue
+            if rel.record_type.lower() in skip_types:
                 continue
             rd = parse_date(rel.release_date)
             if rd is None:
