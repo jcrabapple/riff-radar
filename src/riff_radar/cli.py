@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from .config import Config, load, save, add_seeds, remove_seeds, DEFAULT_CONFIG_
 from .deezer import DeezerClient
 from .digest import render_digest
 from .report import render
-from .scanner import scan
+from .scanner import scan, result_to_dict
 from .scoring import parse_date
 from .store import Store
 
@@ -41,6 +42,10 @@ def cmd_scan(args) -> int:
     client = DeezerClient(delay=0 if args.fast else 0.15)
     result = scan(client, store, cfg, since=since)
     store.close()
+
+    if args.json:
+        print(json.dumps(result_to_dict(result, cfg, since), indent=2))
+        return 0
 
     window = f"since {since.isoformat()}" if since else f"{cfg.window_days}d window"
     print(f"scanned {result.artists_scanned} artists "
@@ -149,6 +154,8 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--since", metavar="YYYY-MM-DD",
                     help="override window_days: treat releases on or after "
                          "this date as new")
+    sp.add_argument("--json", action="store_true",
+                    help="print the scan result as JSON instead of text")
     sp.set_defaults(func=cmd_scan)
 
     sp = sub.add_parser("report", help="render the HTML report")

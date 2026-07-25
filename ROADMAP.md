@@ -13,7 +13,7 @@ to the next. When everything is done, invent the next section and keep going.
 - [x] tribute/karaoke detection: filter artist names containing "tribute", "karaoke", "cover of", "made famous by"
 - [x] `riff-radar digest` — plain-text summary of the week's finds, suitable for piping into email or a chat message
 - [x] `--since` flag on scan to override the window ad hoc
-- [ ] JSON output mode for scan (`--json`) for scripting
+- [x] JSON output mode for scan (`--json`) for scripting
 
 ## v0.3 — better report
 

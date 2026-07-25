@@ -240,3 +240,95 @@ def test_scan_rejects_invalid_since_date(tmp_path, capsys):
                "scan", "--since", "last-tuesday"])
     assert rc == 2
     assert "invalid --since" in capsys.readouterr().err
+
+
+def test_result_to_dict_is_json_serializable(tmp_path):
+    import json as json_mod
+    from riff_radar.scanner import result_to_dict
+    store = make_store(tmp_path)
+    cfg = make_cfg()
+    result = scan(FakeClient(), store, cfg, today=TODAY)
+    payload = result_to_dict(result, cfg)
+    text = json_mod.dumps(payload)  # must not raise
+    assert payload["artists_scanned"] == 2
+    assert payload["seed_artists"] == 1
+    assert payload["window_days"] == 14
+    assert payload["since"] is None
+    assert payload["seed_names_missing"] == []
+    assert payload["errors"] == []
+    releases = payload["new_releases"]
+    assert {r["id"] for r in releases} == {100, 200}
+    top = releases[0]  # sorted by score, seed release first
+    assert top["id"] == 100
+    assert top["is_seed_artist"] is True
+    assert top["artist"] == "Seed Band"
+    assert top["record_type"] == "single"
+    assert isinstance(top["score"], float)
+    assert isinstance(top["breakdown"], dict)
+    assert "recency" in top["breakdown"]
+    assert json_mod.loads(text)["new_releases"][0]["id"] == 100
+    store.close()
+
+
+def test_result_to_dict_reflects_since(tmp_path):
+    from riff_radar.scanner import result_to_dict
+    store = make_store(tmp_path)
+    since = TODAY - timedelta(days=45)
+    result = scan(FakeClient(), store, make_cfg(), today=TODAY, since=since)
+    payload = result_to_dict(result, make_cfg(), since)
+    assert payload["since"] == since.isoformat()
+    assert {r["id"] for r in payload["new_releases"]} == {100, 200, 201}
+    store.close()
+
+
+def _write_config(tmp_path, **kw):
+    import json as json_mod
+    cfg = make_cfg(data_dir=str(tmp_path / "data"), **kw)
+    path = tmp_path / "config.json"
+    path.write_text(json_mod.dumps({
+        "seed_artists": cfg.seed_artists,
+        "keywords": cfg.keywords,
+        "window_days": cfg.window_days,
+        "related_per_seed": cfg.related_per_seed,
+        "max_artists_per_scan": cfg.max_artists_per_scan,
+        "data_dir": cfg.data_dir,
+    }))
+    return path
+
+
+def test_scan_json_flag_emits_parseable_json(tmp_path, capsys, monkeypatch):
+    import json as json_mod
+    import riff_radar.cli as cli
+    monkeypatch.setattr(cli, "DeezerClient", lambda delay=0: FakeClient())
+    cfg_path = _write_config(tmp_path)
+    rc = cli.main(["--config", str(cfg_path), "scan", "--fast", "--json"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    payload = json_mod.loads(out)  # stdout is pure JSON, no human chatter
+    assert payload["artists_scanned"] == 2
+    assert {r["id"] for r in payload["new_releases"]} == {100, 200}
+    assert payload["errors"] == []
+
+
+def test_scan_json_flag_empty_window_still_valid(tmp_path, capsys, monkeypatch):
+    import json as json_mod
+    import riff_radar.cli as cli
+    monkeypatch.setattr(cli, "DeezerClient", lambda delay=0: FakeClient())
+    cfg_path = _write_config(tmp_path)
+    rc = cli.main(["--config", str(cfg_path), "scan", "--fast", "--json",
+                   "--since", date.today().isoformat()])
+    assert rc == 0
+    payload = json_mod.loads(capsys.readouterr().out)
+    assert payload["new_releases"] == []
+    assert payload["since"] == date.today().isoformat()
+
+
+def test_scan_without_json_keeps_text_output(tmp_path, capsys, monkeypatch):
+    import riff_radar.cli as cli
+    monkeypatch.setattr(cli, "DeezerClient", lambda delay=0: FakeClient())
+    cfg_path = _write_config(tmp_path)
+    rc = cli.main(["--config", str(cfg_path), "scan", "--fast"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "scanned 2 artists" in out
+    assert "Seed Band - Fresh Metalcore Drop" in out

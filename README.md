@@ -85,6 +85,11 @@ It is built for piping, e.g. `riff-radar digest | mail -s "new metal" you@exampl
 window becomes everything on or after that date, and recency scoring decays
 across the wider span. Handy for backfilling after time away.
 
+`riff-radar scan --json` prints the scan result as JSON on stdout instead of
+the human-readable listing: scan stats, errors, and every new release with
+score, score breakdown, links, and record type. Built for scripting, e.g.
+`riff-radar scan --json | jq '.new_releases[].link'`.
+
 ## Development
 
 ```bash

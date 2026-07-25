@@ -122,3 +122,35 @@ def scan(client: DeezerClient, store: Store, cfg: Config,
                       result.artists_scanned, len(result.new_releases))
     store.commit()
     return result
+
+
+def scored_to_dict(s: ScoredRelease) -> dict:
+    """Flat, JSON-serializable view of one scored release."""
+    r = s.release
+    return {
+        "id": r.id,
+        "title": r.title,
+        "artist": r.artist_name,
+        "artist_id": r.artist_id,
+        "release_date": r.release_date,
+        "record_type": r.record_type,
+        "link": r.link,
+        "cover": r.cover,
+        "score": round(s.score, 1),
+        "is_seed_artist": s.is_seed_artist,
+        "breakdown": s.breakdown,
+    }
+
+
+def result_to_dict(result: ScanResult, cfg: Config,
+                   since: date | None = None) -> dict:
+    """JSON-serializable view of a whole scan, for `scan --json`."""
+    return {
+        "artists_scanned": result.artists_scanned,
+        "seed_artists": len(cfg.seed_artists),
+        "window_days": cfg.window_days,
+        "since": since.isoformat() if since else None,
+        "seed_names_missing": result.seed_names_missing,
+        "errors": result.errors,
+        "new_releases": [scored_to_dict(s) for s in result.new_releases],
+    }
