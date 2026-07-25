@@ -257,9 +257,15 @@ def make_handler(app: WebApp):
 
 def serve(config_path: Path | None = None, host: str = "127.0.0.1",
           port: int = 8777, client_factory=None) -> int:
+    import signal
     app = WebApp(config_path, client_factory)
     httpd = ThreadingHTTPServer((host, port), make_handler(app))
     httpd.daemon_threads = True
+
+    def _sigterm(_sig, _frame):
+        raise KeyboardInterrupt  # containers stop via SIGTERM; exit cleanly
+
+    signal.signal(signal.SIGTERM, _sigterm)
     print(f"riff-radar listening on http://{host}:{port}  (Ctrl+C to stop)")
     try:
         httpd.serve_forever()
