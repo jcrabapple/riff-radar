@@ -19,5 +19,8 @@ RUN pip install --no-cache-dir .
 ENV HOME=/data
 VOLUME ["/data"]
 
+# Web UI (riff-radar serve --host 0.0.0.0)
+EXPOSE 8777
+
 ENTRYPOINT ["riff-radar"]
 CMD ["--help"]

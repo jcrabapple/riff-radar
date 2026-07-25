@@ -113,9 +113,9 @@ def _breakdown_html(breakdown: dict) -> str:
             + "".join(rows) + hits_html + "</details>")
 
 
-def render(store: Store, out_path: Path, limit: int = 100) -> Path:
+def body_html(store: Store, limit: int = 100) -> str:
+    """Filters bar + card grid, shared by the static report and the web UI."""
     releases = store.recent_releases(limit=limit)
-    stats = store.stats()
     cards = []
     for r in releases:
         try:
@@ -152,6 +152,11 @@ def render(store: Store, out_path: Path, limit: int = 100) -> Path:
   <button data-filter="album">Albums</button>
   <span class="count"></span>
 </div>"""
+    return filters + '\n<div class="grid">\n' + body + '\n</div>'
+
+
+def render(store: Store, out_path: Path, limit: int = 100) -> Path:
+    stats = store.stats()
     doc = f"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">
@@ -164,10 +169,7 @@ def render(store: Store, out_path: Path, limit: int = 100) -> Path:
   <div class="sub">{stats['releases']} releases tracked · {stats['artists']} artists ·
     {stats['scans']} scans · generated {date.today().isoformat()}</div>
 </header>
-{filters}
-<div class="grid">
-{body}
-</div>
+{body_html(store, limit)}
 <footer>Scores are explainable: recency (0-40) + artist proximity (0-35) + scene keywords (0-25).</footer>
 <script>{JS}</script>
 </body></html>"""

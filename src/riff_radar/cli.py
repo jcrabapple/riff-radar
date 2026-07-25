@@ -137,6 +137,12 @@ def cmd_untrack(args) -> int:
     return 0
 
 
+def cmd_serve(args) -> int:
+    from .web import serve
+    return serve(Path(args.config) if args.config else None,
+                 host=args.host, port=args.port)
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="riff-radar",
@@ -181,6 +187,13 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("untrack", help="remove seed artists from the config")
     sp.add_argument("names", nargs="+", help="artist names to stop tracking")
     sp.set_defaults(func=cmd_untrack)
+
+    sp = sub.add_parser("serve", help="run the local web UI")
+    sp.add_argument("--host", default="127.0.0.1",
+                    help="bind address (default 127.0.0.1; use 0.0.0.0 "
+                         "for LAN/container access; no auth, be careful)")
+    sp.add_argument("--port", type=int, default=8777)
+    sp.set_defaults(func=cmd_serve)
     return p
 
 

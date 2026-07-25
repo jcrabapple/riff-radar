@@ -112,6 +112,27 @@ container:
 0 8 * * *  podman run --rm -v riff-radar-data:/data:Z riff-radar scan --fast
 ```
 
+## Web UI
+
+`riff-radar serve` runs a local web UI on http://127.0.0.1:8777: the report
+grid plus a Scan now button (runs in the background, page refreshes when it
+finishes) and seed artist management (add / untrack from the browser).
+
+```bash
+riff-radar serve                 # localhost only
+riff-radar serve --port 9000
+```
+
+There is no authentication, so it binds to 127.0.0.1 by default. In a
+container, bind all interfaces and publish the port:
+
+```bash
+podman run --rm -p 8777:8777 -v riff-radar-data:/data:Z \
+  riff-radar serve --host 0.0.0.0
+```
+
+Only use `--host 0.0.0.0` on a trusted LAN.
+
 ## Automation
 
 Runs fine from cron or a systemd timer:
