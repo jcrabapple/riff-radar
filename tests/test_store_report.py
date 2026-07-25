@@ -70,3 +70,44 @@ def test_report_breakdown_handles_missing_data(tmp_path):
     assert 'style="width:0%"' in html
     assert "matched:" not in html
     store.close()
+
+
+def test_report_filter_buttons(tmp_path):
+    store = Store(tmp_path / "t.db")
+    rel = Release(id=5, title="Filter Me", artist_id=1, artist_name="Band",
+                  release_date="2026-07-20", record_type="album",
+                  link="https://deezer.com/album/5", cover="")
+    store.add_release(rel, 50.0, "", "2026-07-24T00:00:00")
+    store.commit()
+    html = render(store, tmp_path / "report.html").read_text()
+    assert '<div class="filters">' in html
+    assert 'data-filter="all"' in html
+    assert 'data-filter="seed"' in html
+    assert 'data-filter="single"' in html
+    assert 'data-filter="album"' in html
+    assert "applyFilter" in html
+    store.close()
+
+
+def test_report_no_filters_when_empty(tmp_path):
+    store = Store(tmp_path / "t.db")
+    html = render(store, tmp_path / "report.html").read_text()
+    assert '<div class="filters">' not in html
+    store.close()
+
+
+def test_report_card_data_attributes(tmp_path):
+    store = Store(tmp_path / "t.db")
+    seed = Release(id=6, title="Seed Release", artist_id=1, artist_name="Seed Band",
+                   release_date="2026-07-20", record_type="album",
+                   link="https://deezer.com/album/6", cover="")
+    other = Release(id=7, title="Other Release", artist_id=2, artist_name="Other Band",
+                    release_date="2026-07-19", record_type="single",
+                    link="https://deezer.com/album/7", cover="")
+    store.add_release(seed, 80.0, '{"proximity": 35}', "2026-07-24T00:00:00")
+    store.add_release(other, 40.0, '{"proximity": 10}', "2026-07-24T00:00:00")
+    store.commit()
+    html = render(store, tmp_path / "report.html").read_text()
+    assert 'data-seed="1" data-type="album"' in html
+    assert 'data-seed="0" data-type="single"' in html
+    store.close()

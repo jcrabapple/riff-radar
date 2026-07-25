@@ -52,8 +52,43 @@ a.listen { margin-top:0.35rem; text-align:center; text-decoration:none;
            padding:0.45rem; border-radius:6px; background:#ff4d2e;
            color:#0d0d10; font-weight:650; font-size:0.85rem; }
 a.listen:hover { background:#ff6a4f; }
+.filters { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;
+           padding:1rem 2rem 0; }
+.filters button { background:#16161c; color:#c9c9d4; border:1px solid #26262e;
+                  border-radius:999px; padding:0.35rem 0.9rem; font-size:0.8rem;
+                  cursor:pointer; }
+.filters button:hover { border-color:#ff4d2e; color:#e8e6e3; }
+.filters button.active { background:#ff4d2e; border-color:#ff4d2e;
+                         color:#0d0d10; font-weight:650; }
+.filters .count { color:#55555e; font-size:0.75rem; margin-left:auto; }
+.card.hidden { display:none; }
 .empty { padding:4rem 2rem; text-align:center; color:#8b8b96; }
 footer { padding:1rem 2rem 2rem; color:#55555e; font-size:0.75rem; }
+"""
+
+JS = """
+const buttons = document.querySelectorAll('.filters button');
+const cards = document.querySelectorAll('.card');
+const count = document.querySelector('.filters .count');
+function applyFilter(filter) {
+  let shown = 0;
+  cards.forEach(card => {
+    const seed = card.dataset.seed === '1';
+    const type = card.dataset.type;
+    const show = filter === 'all'
+      || (filter === 'seed' && seed)
+      || (filter === 'single' && type === 'single')
+      || (filter === 'album' && (type === 'album' || type === 'ep'));
+    card.classList.toggle('hidden', !show);
+    if (show) shown += 1;
+  });
+  if (count) count.textContent = 'showing ' + shown + ' of ' + cards.length;
+}
+buttons.forEach(btn => btn.addEventListener('click', () => {
+  buttons.forEach(b => b.classList.toggle('active', b === btn));
+  applyFilter(btn.dataset.filter);
+}));
+applyFilter('all');
 """
 
 
@@ -87,12 +122,13 @@ def render(store: Store, out_path: Path, limit: int = 100) -> Path:
             breakdown = json.loads(r.breakdown) if r.breakdown else {}
         except json.JSONDecodeError:
             breakdown = {}
-        badge = ('<span class="badge seed">seed artist</span>' if breakdown.get("proximity", 0) >= 35
+        is_seed = breakdown.get("proximity", 0) >= 35
+        badge = ('<span class="badge seed">seed artist</span>' if is_seed
                  else f'<span class="badge">{html.escape(r.record_type)}</span>')
         cover = (f'<img src="{html.escape(r.cover)}" alt="" loading="lazy">'
                  if r.cover else "")
         cards.append(f"""
-<div class="card">
+<div class="card" data-seed="{1 if is_seed else 0}" data-type="{html.escape(r.record_type)}">
   {cover}
   <div class="body">
     <div class="title">{html.escape(r.title)}</div>
@@ -106,6 +142,16 @@ def render(store: Store, out_path: Path, limit: int = 100) -> Path:
 
     body = ("\n".join(cards) if cards
             else '<div class="empty">No releases tracked yet. Run <code>riff-radar scan</code>.</div>')
+    filters = ""
+    if cards:
+        filters = """
+<div class="filters">
+  <button class="active" data-filter="all">All</button>
+  <button data-filter="seed">Seed artists</button>
+  <button data-filter="single">Singles</button>
+  <button data-filter="album">Albums</button>
+  <span class="count"></span>
+</div>"""
     doc = f"""<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8">
@@ -118,10 +164,12 @@ def render(store: Store, out_path: Path, limit: int = 100) -> Path:
   <div class="sub">{stats['releases']} releases tracked · {stats['artists']} artists ·
     {stats['scans']} scans · generated {date.today().isoformat()}</div>
 </header>
+{filters}
 <div class="grid">
 {body}
 </div>
 <footer>Scores are explainable: recency (0-40) + artist proximity (0-35) + scene keywords (0-25).</footer>
+<script>{JS}</script>
 </body></html>"""
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(doc)

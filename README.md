@@ -70,6 +70,10 @@ Every release gets 0-100 points, and each report card has a collapsible
 Dedupe is by Deezer album id in a local SQLite DB, so repeat scans stay quiet
 unless something genuinely new shows up.
 
+The report header has filter buttons (All / Seed artists / Singles / Albums)
+that narrow the grid client-side, with a live "showing X of Y" count. Albums
+includes EPs.
+
 ## Automation
 
 Runs fine from cron or a systemd timer:
