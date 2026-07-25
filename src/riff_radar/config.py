@@ -43,6 +43,13 @@ class Config:
     # Extra record types to skip for specific artists, keyed by artist name
     # (case-insensitive). Merged with skip_record_types during a scan.
     artist_skip_record_types: dict[str, list[str]] = field(default_factory=dict)
+    # Substrings that mark tribute/karaoke/cover noise. Related artists whose
+    # names match are never added to the graph, and releases whose titles
+    # match are dropped during a scan. Seed artists are never filtered this
+    # way: if you tracked one on purpose, you get it.
+    noise_patterns: list[str] = field(default_factory=lambda: [
+        "tribute", "karaoke", "cover of", "made famous by",
+    ])
     data_dir: str = "~/.local/share/riff-radar"
 
     @property

@@ -28,6 +28,12 @@ class ScanResult:
     errors: list[str] = field(default_factory=list)
 
 
+def is_noise(text: str, patterns: list[str]) -> bool:
+    """True if text contains any tribute/karaoke/cover marker (case-insensitive)."""
+    low = text.lower()
+    return any(p.lower() in low for p in patterns)
+
+
 def build_artist_graph(client: DeezerClient, cfg: Config) -> tuple[dict[int, tuple[Artist, bool]], list[str], list[str]]:
     """Return ({artist_id: (artist, is_seed)}, missing_seed_names, errors)."""
     graph: dict[int, tuple[Artist, bool]] = {}
@@ -47,6 +53,8 @@ def build_artist_graph(client: DeezerClient, cfg: Config) -> tuple[dict[int, tup
             for rel in client.related_artists(seed.id, limit=cfg.related_per_seed):
                 if len(graph) >= cfg.max_artists_per_scan:
                     break
+                if is_noise(rel.name, cfg.noise_patterns):
+                    continue  # tribute/karaoke acts pollute the related graph
                 graph.setdefault(rel.id, (rel, False))
         except DeezerError as e:
             errors.append(f"related for '{seed.name}': {e}")
@@ -86,6 +94,8 @@ def scan(client: DeezerClient, store: Store, cfg: Config,
                 continue
             if rel.record_type.lower() in skip_types:
                 continue
+            if is_noise(rel.title, cfg.noise_patterns):
+                continue  # karaoke/cover releases hiding under a legit artist
             rd = parse_date(rel.release_date)
             if rd is None:
                 continue

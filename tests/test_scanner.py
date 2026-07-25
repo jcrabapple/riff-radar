@@ -148,3 +148,61 @@ def test_skipped_releases_are_not_stored(tmp_path):
     scan(CompileClient(), store, make_cfg(), today=TODAY)
     assert store.stats()["releases"] == 2
     store.close()
+
+
+class NoiseClient(FakeClient):
+    """Adds a tribute act to the related graph and a karaoke release to the seed."""
+    def __init__(self):
+        super().__init__()
+        self.related[1] = self.related[1] + [Artist(3, "Metalcore Tribute Karaoke")]
+        self.albums[1] = self.albums[1] + [
+            make_release(301, "Seed Band", 2,
+                         title="Fresh Drop (Made Famous By Seed Band)"),
+        ]
+        self.albums[3] = [make_release(302, "Metalcore Tribute Karaoke", 1)]
+
+
+def test_tribute_related_artists_never_enter_graph():
+    graph, _, _ = build_artist_graph(NoiseClient(), make_cfg())
+    assert set(graph) == {1, 2}  # artist 3 is tribute noise
+
+
+def test_noise_titled_releases_skipped(tmp_path):
+    store = make_store(tmp_path)
+    result = scan(NoiseClient(), store, make_cfg(), today=TODAY)
+    ids = {s.release.id for s in result.new_releases}
+    assert ids == {100, 200}  # 301 is a "made famous by" title, 302's artist filtered
+    assert store.stats()["releases"] == 2
+    store.close()
+
+
+def test_seed_artist_matching_noise_pattern_still_scanned(tmp_path):
+    # If the user deliberately seeds a tribute band, respect that.
+    client = NoiseClient()
+    client.artists["Tribute Kings"] = Artist(9, "Tribute Kings")
+    client.albums[9] = [make_release(900, "Tribute Kings", 1)]
+    client.related[9] = []
+    store = make_store(tmp_path)
+    result = scan(client, store, make_cfg(seed_artists=["Tribute Kings"]), today=TODAY)
+    assert {s.release.id for s in result.new_releases} == {900}
+    store.close()
+
+
+def test_noise_patterns_are_configurable(tmp_path):
+    client = NoiseClient()
+    store = make_store(tmp_path)
+    cfg = make_cfg(noise_patterns=[])  # filtering disabled
+    result = scan(client, store, cfg, today=TODAY)
+    ids = {s.release.id for s in result.new_releases}
+    assert ids == {100, 200, 301, 302}
+    store.close()
+
+
+def test_is_noise_case_insensitive():
+    from riff_radar.scanner import is_noise
+    pats = ["tribute", "karaoke", "cover of", "made famous by"]
+    assert is_noise("A TRIBUTE to Metal", pats)
+    assert is_noise("Karaoke Superhits", pats)
+    assert is_noise("Cover of the Month", pats)
+    assert is_noise("made famous by someone", pats)
+    assert not is_noise("Fresh Metalcore Drop", pats)

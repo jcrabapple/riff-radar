@@ -41,7 +41,8 @@ Config is plain JSON, editable by hand or via `track`/`untrack`:
   "related_per_seed": 10,
   "max_artists_per_scan": 60,
   "skip_record_types": ["compile"],
-  "artist_skip_record_types": {"Some Artist": ["single"]}
+  "artist_skip_record_types": {"Some Artist": ["single"]},
+  "noise_patterns": ["tribute", "karaoke", "cover of", "made famous by"]
 }
 ```
 
@@ -49,6 +50,12 @@ Config is plain JSON, editable by hand or via `track`/`untrack`:
 karaoke, tribute, and reissue noise lives, so it is skipped by default).
 `artist_skip_record_types` adds extra skips for one artist only, matched
 case-insensitively against the artist name.
+
+`noise_patterns` catches the tribute and karaoke acts that slip through as
+legit record types. Related artists whose names contain a pattern never enter
+the scan graph, and releases with a pattern in the title are dropped. Seed
+artists are exempt: if you track one on purpose, it stays. Set it to `[]` to
+disable the filter entirely.
 
 ## How scoring works
 
