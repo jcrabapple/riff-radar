@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
-from .config import Config, load, save, DEFAULT_CONFIG_PATH
+from .config import Config, load, save, add_seeds, remove_seeds, DEFAULT_CONFIG_PATH
 from .deezer import DeezerClient
 from .report import render
 from .scanner import scan
@@ -22,7 +22,7 @@ def cmd_init(args) -> int:
     cfg = Config()
     path = save(cfg, Path(args.config) if args.config else None)
     print(f"wrote default config to {path}")
-    print("edit seed_artists and keywords, then run: riff-radar scan")
+    print("add seed artists with: riff-radar track \"Artist Name\", then: riff-radar scan")
     return 0
 
 
@@ -86,6 +86,34 @@ def cmd_artists(args) -> int:
     return 0
 
 
+def _config_path(args) -> Path | None:
+    return Path(args.config) if args.config else None
+
+
+def cmd_track(args) -> int:
+    cfg = load(_config_path(args))
+    added, skipped = add_seeds(cfg, args.names)
+    if added:
+        save(cfg, _config_path(args))
+        print(f"tracking: {', '.join(added)}")
+    if skipped:
+        print(f"already tracked: {', '.join(skipped)}")
+    print(f"seed artists ({len(cfg.seed_artists)}): {', '.join(cfg.seed_artists)}")
+    return 0
+
+
+def cmd_untrack(args) -> int:
+    cfg = load(_config_path(args))
+    removed, not_found = remove_seeds(cfg, args.names)
+    if removed:
+        save(cfg, _config_path(args))
+        print(f"untracked: {', '.join(removed)}")
+    for name in not_found:
+        print(f"not a seed artist: {name}")
+    print(f"seed artists ({len(cfg.seed_artists)}): {', '.join(cfg.seed_artists)}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="riff-radar",
@@ -112,6 +140,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("artists", help="list artists seen, most releases first")
     sp.set_defaults(func=cmd_artists)
+
+    sp = sub.add_parser("track", help="add seed artists to the config")
+    sp.add_argument("names", nargs="+", help="artist names to track")
+    sp.set_defaults(func=cmd_track)
+
+    sp = sub.add_parser("untrack", help="remove seed artists from the config")
+    sp.add_argument("names", nargs="+", help="artist names to stop tracking")
+    sp.set_defaults(func=cmd_untrack)
     return p
 
 

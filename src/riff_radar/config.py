@@ -58,3 +58,33 @@ def save(cfg: Config, path: Path | None = None) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(asdict(cfg), indent=2) + "\n")
     return path
+
+
+def add_seeds(cfg: Config, names: list[str]) -> tuple[list[str], list[str]]:
+    """Add seed artists, deduping case-insensitively. Returns (added, skipped)."""
+    known = {s.lower() for s in cfg.seed_artists}
+    added, skipped = [], []
+    for name in names:
+        name = name.strip()
+        if not name:
+            continue
+        if name.lower() in known:
+            skipped.append(name)
+        else:
+            cfg.seed_artists.append(name)
+            known.add(name.lower())
+            added.append(name)
+    return added, skipped
+
+
+def remove_seeds(cfg: Config, names: list[str]) -> tuple[list[str], list[str]]:
+    """Remove seed artists (case-insensitive). Returns (removed, not_found)."""
+    removed, not_found = [], []
+    for name in names:
+        match = next((s for s in cfg.seed_artists if s.lower() == name.strip().lower()), None)
+        if match is None:
+            not_found.append(name)
+        else:
+            cfg.seed_artists.remove(match)
+            removed.append(match)
+    return removed, not_found

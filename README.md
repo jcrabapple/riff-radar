@@ -27,9 +27,11 @@ riff-radar scan      # crawl the graph, find new releases
 riff-radar report    # render ~/.local/share/riff-radar/report.html
 riff-radar stats     # quick counters
 riff-radar artists   # who's been showing up on the radar
+riff-radar track "Knocked Loose"    # add seed artists (no JSON editing)
+riff-radar untrack "Sleep Token"    # remove them again
 ```
 
-Config is plain JSON:
+Config is plain JSON, editable by hand or via `track`/`untrack`:
 
 ```json
 {

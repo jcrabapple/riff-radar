@@ -8,7 +8,7 @@ to the next. When everything is done, invent the next section and keep going.
 
 ## v0.2 — smarter radar
 
-- [ ] `track`/`untrack` CLI commands to manage seed artists without editing JSON
+- [x] `track`/`untrack` CLI commands to manage seed artists without editing JSON
 - [ ] per-artist release type filter (skip "compile" and karaoke/tribute noise)
 - [ ] tribute/karaoke detection: filter artist names containing "tribute", "karaoke", "cover of", "made famous by"
 - [ ] `riff-radar digest` — plain-text summary of the week's finds, suitable for piping into email or a chat message
