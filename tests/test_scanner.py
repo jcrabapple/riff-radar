@@ -206,3 +206,37 @@ def test_is_noise_case_insensitive():
     assert is_noise("Cover of the Month", pats)
     assert is_noise("made famous by someone", pats)
     assert not is_noise("Fresh Metalcore Drop", pats)
+
+
+def test_since_overrides_configured_window(tmp_path):
+    store = make_store(tmp_path)
+    since = TODAY - timedelta(days=45)
+    result = scan(FakeClient(), store, make_cfg(), today=TODAY, since=since)
+    ids = {s.release.id for s in result.new_releases}
+    assert ids == {100, 200, 201}  # 201 is 40 days old, inside the since window
+    store.close()
+
+
+def test_since_recency_decays_across_override_window(tmp_path):
+    store = make_store(tmp_path)
+    since = TODAY - timedelta(days=45)
+    result = scan(FakeClient(), store, make_cfg(), today=TODAY, since=since)
+    rel200 = next(s for s in result.new_releases if s.release.id == 200)
+    # 3 days old in a 45 day window
+    assert rel200.breakdown["recency"] == round(40.0 * (1 - 3 / 45), 1)
+    store.close()
+
+
+def test_since_today_finds_nothing_older(tmp_path):
+    store = make_store(tmp_path)
+    result = scan(FakeClient(), store, make_cfg(), today=TODAY, since=TODAY)
+    assert result.new_releases == []  # fake releases are 1+ days old
+    store.close()
+
+
+def test_scan_rejects_invalid_since_date(tmp_path, capsys):
+    from riff_radar.cli import main
+    rc = main(["--config", str(tmp_path / "missing.json"),
+               "scan", "--since", "last-tuesday"])
+    assert rc == 2
+    assert "invalid --since" in capsys.readouterr().err

@@ -81,6 +81,10 @@ Runs fine from cron or a systemd timer:
 last 7 days (override with `--days`), seed artists split out from discoveries.
 It is built for piping, e.g. `riff-radar digest | mail -s "new metal" you@example.com`.
 
+`riff-radar scan --since 2026-07-01` overrides `window_days` for one run: the
+window becomes everything on or after that date, and recency scoring decays
+across the wider span. Handy for backfilling after time away.
+
 ## Development
 
 ```bash

@@ -12,6 +12,7 @@ from .deezer import DeezerClient
 from .digest import render_digest
 from .report import render
 from .scanner import scan
+from .scoring import parse_date
 from .store import Store
 
 
@@ -29,13 +30,21 @@ def cmd_init(args) -> int:
 
 def cmd_scan(args) -> int:
     cfg = load(Path(args.config) if args.config else None)
+    since = None
+    if args.since:
+        since = parse_date(args.since)
+        if since is None:
+            print(f"invalid --since date: {args.since!r} (want YYYY-MM-DD)",
+                  file=sys.stderr)
+            return 2
     store = _store(cfg)
     client = DeezerClient(delay=0 if args.fast else 0.15)
-    result = scan(client, store, cfg)
+    result = scan(client, store, cfg, since=since)
     store.close()
 
+    window = f"since {since.isoformat()}" if since else f"{cfg.window_days}d window"
     print(f"scanned {result.artists_scanned} artists "
-          f"({len(cfg.seed_artists)} seeds + related)")
+          f"({len(cfg.seed_artists)} seeds + related, {window})")
     if result.seed_names_missing:
         print(f"seeds not found on Deezer: {', '.join(result.seed_names_missing)}")
     if result.errors:
@@ -137,6 +146,9 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("scan", help="scan for new releases")
     sp.add_argument("--fast", action="store_true",
                     help="skip the polite delay between API calls")
+    sp.add_argument("--since", metavar="YYYY-MM-DD",
+                    help="override window_days: treat releases on or after "
+                         "this date as new")
     sp.set_defaults(func=cmd_scan)
 
     sp = sub.add_parser("report", help="render the HTML report")

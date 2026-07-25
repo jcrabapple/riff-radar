@@ -73,8 +73,11 @@ def skipped_record_types(cfg: Config, artist_name: str) -> set[str]:
 
 
 def scan(client: DeezerClient, store: Store, cfg: Config,
-         today: date | None = None) -> ScanResult:
+         today: date | None = None, since: date | None = None) -> ScanResult:
     today = today or date.today()
+    # --since overrides the configured window: the window becomes
+    # [since, today], and recency scoring decays across that span.
+    window_days = cfg.window_days if since is None else max(0, (today - since).days)
     result = ScanResult()
     graph, missing, errors = build_artist_graph(client, cfg)
     result.seed_names_missing = missing
@@ -100,13 +103,13 @@ def scan(client: DeezerClient, store: Store, cfg: Config,
             if rd is None:
                 continue
             age = (today - rd).days
-            if age > cfg.window_days:
+            if age > window_days:
                 continue  # older than the window; not added, may resurface never
             score, breakdown = score_release(
                 rd, rel.title, rel.artist_name,
                 is_seed=is_seed, is_related=not is_seed,
                 keywords=cfg.keywords, today=today,
-                window_days=cfg.window_days,
+                window_days=window_days,
             )
             scored = ScoredRelease(rel, score, breakdown, is_seed)
             result.new_releases.append(scored)
