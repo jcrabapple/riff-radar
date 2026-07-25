@@ -60,7 +60,8 @@ disable the filter entirely.
 
 ## How scoring works
 
-Every release gets 0-100 points, and the report shows the breakdown:
+Every release gets 0-100 points, and each report card has a collapsible
+"score breakdown" toggle with a per-component bar chart:
 
 - **Recency (0-40)** — linear decay across your scan window. Dropped today? Full marks.
 - **Proximity (0-35)** — a seed artist's own release outranks a related artist's.

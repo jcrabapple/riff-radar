@@ -17,7 +17,7 @@ to the next. When everything is done, invent the next section and keep going.
 
 ## v0.3 — better report
 
-- [ ] collapsible score-breakdown tooltip on each card
+- [x] collapsible score-breakdown tooltip on each card
 - [ ] filter buttons: all / seed artists only / singles only / albums only
 - [ ] dark/light toggle
 - [ ] "new since last report" highlight banner

@@ -37,3 +37,36 @@ def test_report_empty_state(tmp_path):
     out = render(store, tmp_path / "report.html")
     assert "No releases tracked yet" in out.read_text()
     store.close()
+
+
+def test_report_score_breakdown_collapsible(tmp_path):
+    store = Store(tmp_path / "t.db")
+    rel = Release(id=3, title="Breakdown Me", artist_id=1, artist_name="Band",
+                  release_date="2026-07-20", record_type="album",
+                  link="https://deezer.com/album/3", cover="")
+    breakdown = ('{"recency": 40, "proximity": 35, "keywords": 12,'
+                 ' "keyword_hits": ["metal"]}')
+    store.add_release(rel, 87.0, breakdown, "2026-07-24T00:00:00")
+    store.commit()
+    html = render(store, tmp_path / "report.html").read_text()
+    assert '<details class="breakdown">' in html
+    assert "<summary>score breakdown</summary>" in html
+    # recency 40/40 is a full bar, keywords 12/25 is roughly half
+    assert 'style="width:100%"' in html
+    assert 'style="width:48%"' in html
+    assert "matched: metal" in html
+    store.close()
+
+
+def test_report_breakdown_handles_missing_data(tmp_path):
+    store = Store(tmp_path / "t.db")
+    rel = Release(id=4, title="No Breakdown", artist_id=1, artist_name="Band",
+                  release_date="2026-07-20", record_type="single",
+                  link="https://deezer.com/album/4", cover="")
+    store.add_release(rel, 10.0, "", "2026-07-24T00:00:00")
+    store.commit()
+    html = render(store, tmp_path / "report.html").read_text()
+    assert '<details class="breakdown">' in html
+    assert 'style="width:0%"' in html
+    assert "matched:" not in html
+    store.close()
